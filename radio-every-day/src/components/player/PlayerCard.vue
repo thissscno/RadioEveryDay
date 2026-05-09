@@ -12,8 +12,8 @@
       <div class="sheet-inner">
         <!-- 折叠状态下的mini-player控制条 -->
         <div class="collapsed-mini-player">
-          <div class="mini-handle" @click.stop="$emit('expand')"></div>
-          <div class="mini-content" @click.stop="$emit('expand')">
+          <div class="mini-handle" @click.stop="$emit('expand')" @touchend.stop.prevent="$emit('expand')"></div>
+          <div class="mini-content" @click.stop="$emit('expand')" @touchend.stop.prevent="$emit('expand')">
             <div class="mini-time">{{ currentTimeFormatted }}</div>
             <div class="mini-wave" :class="{ paused: !isPlaying }" aria-hidden="true">
               <span
@@ -26,7 +26,7 @@
                 }"
               ></span>
             </div>
-            <button class="mini-play-btn" @click.stop="$emit('toggle-play')" :aria-label="isPlaying ? 'pause' : 'play'">
+            <button class="mini-play-btn" @click.stop="$emit('toggle-play')" @touchend.stop.prevent="$emit('toggle-play')" :aria-label="isPlaying ? 'pause' : 'play'">
               <svg v-if="!isPlaying" width="14" height="16" viewBox="0 0 14 16" fill="currentColor">
                 <path d="M2 2.1L12 8L2 13.9V2.1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
               </svg>
