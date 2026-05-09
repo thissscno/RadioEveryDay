@@ -12,8 +12,8 @@
       <div class="sheet-inner">
         <!-- 折叠状态下的mini-player控制条 -->
         <div class="collapsed-mini-player">
-          <div class="mini-handle" @click.stop="$emit('expand')" @touchend.stop.prevent="$emit('expand')"></div>
-          <div class="mini-content" @click.stop="$emit('expand')" @touchend.stop.prevent="$emit('expand')">
+          <div class="mini-handle" @click.stop="$emit('expand')"></div>
+          <div class="mini-content" @click.stop="$emit('expand')">
             <div class="mini-time">{{ currentTimeFormatted }}</div>
             <div class="mini-wave" :class="{ paused: !isPlaying }" aria-hidden="true">
               <span
@@ -26,7 +26,7 @@
                 }"
               ></span>
             </div>
-            <button class="mini-play-btn" @click.stop="$emit('toggle-play')" @touchend.stop.prevent="$emit('toggle-play')" :aria-label="isPlaying ? 'pause' : 'play'">
+            <button class="mini-play-btn" @click.stop="$emit('toggle-play')" :aria-label="isPlaying ? 'pause' : 'play'">
               <svg v-if="!isPlaying" width="14" height="16" viewBox="0 0 14 16" fill="currentColor">
                 <path d="M2 2.1L12 8L2 13.9V2.1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
               </svg>
@@ -102,12 +102,17 @@ const miniWaveHeights = [
 ]
 
 let touchStartY = 0
+let touchStartTarget = null
 
 function onTouchStart(e) {
   touchStartY = e.touches[0].clientY
+  touchStartTarget = e.target
 }
 
 function onTouchMove(e) {
+  // 如果点击的是按钮，不做滑动处理
+  if (touchStartTarget && touchStartTarget.closest('.mini-play-btn')) return
+
   const dy = e.touches[0].clientY - touchStartY
   if (dy > 80 && !props.isCollapsed) {
     emit('collapse')
@@ -116,7 +121,9 @@ function onTouchMove(e) {
   }
 }
 
-function onTouchEnd() {}
+function onTouchEnd() {
+  touchStartTarget = null
+}
 
 const expandedY = 265
 const collapsedY = computed(() => {
@@ -261,6 +268,8 @@ function onBarClick(e) {
   cursor: pointer;
   transition: transform 0.2s ease;
   justify-self: center;
+  position: relative;
+  z-index: 2;
 }
 
 .mini-play-btn:active {
