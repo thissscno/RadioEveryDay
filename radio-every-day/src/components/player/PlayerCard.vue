@@ -1,5 +1,5 @@
 <template>
-  <div class="player-card">
+  <div class="player-card" :class="{ collapsed: isCollapsed }">
     <Motion
       class="sheet-content"
       :animate="{ y: sheetY }"
@@ -11,9 +11,29 @@
       @touchend="onTouchEnd"
     >
       <div class="sheet-inner">
-        <div class="collapsed-hint" @click.stop="$emit('expand')">
-          <div class="handle"></div>
-          <span class="hint-label">上滑展开讲稿</span>
+        <!-- 折叠状态下的mini-player控制条 -->
+        <div class="collapsed-mini-player" @click.stop="$emit('expand')">
+          <div class="mini-handle"></div>
+          <div class="mini-content">
+            <div class="mini-time">{{ currentTimeFormatted }}</div>
+            <div class="mini-wave" :class="{ paused: !isPlaying }" aria-hidden="true">
+              <span
+                v-for="i in 18"
+                :key="i"
+                :style="{
+                  '--i': i,
+                  '--h': miniWaveHeights[i - 1],
+                  '--o': i <= 11 ? 0.95 : 0.2 + (0.15 * (11 / i)),
+                }"
+              ></span>
+            </div>
+            <button class="mini-play-btn" @click.stop="$emit('toggle-play')" :aria-label="isPlaying ? 'pause' : 'play'">
+              <svg v-if="!isPlaying" width="14" height="16" viewBox="0 0 14 16" fill="currentColor">
+                <path d="M2 2.1L12 8L2 13.9V2.1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+              </svg>
+              <span v-else class="mini-pause-icon"></span>
+            </button>
+          </div>
         </div>
 
         <div class="expanded-content">
@@ -77,6 +97,11 @@ const emit = defineEmits(['toggle-play', 'seek', 'seek-to', 'expand', 'collapse'
 
 const barRef = ref(null)
 
+const miniWaveHeights = [
+  18, 22, 26, 18, 24, 12, 16, 22, 28, 36,
+  32, 20, 18, 24, 14, 12, 20, 16,
+]
+
 let touchStartY = 0
 
 function onTouchStart(e) {
@@ -95,7 +120,7 @@ function onTouchEnd() {}
 const expandedY = 265
 const collapsedY = computed(() => {
   if (typeof window !== 'undefined') {
-    return window.innerHeight - 122
+    return window.innerHeight - 96
   }
   return 700
 })
@@ -145,41 +170,121 @@ function handleSheetClick() {
   flex-direction: column;
 }
 
-.collapsed-hint {
+/* 折叠状态下的mini-player控制条 */
+.collapsed-mini-player {
   position: absolute;
   left: 0;
   right: 0;
-  top: 18px;
-  text-align: center;
-  color: #aaa;
+  top: 0;
+  height: 96px;
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   opacity: 0;
   transform: translate3d(0, 12px, 0);
   transition:
     opacity 200ms ease,
     transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
+  cursor: pointer;
 }
 
-.collapsed .collapsed-hint {
+.collapsed .collapsed-mini-player {
   opacity: 1;
   transform: translate3d(0, 0, 0);
   transition-delay: 260ms;
   pointer-events: auto;
-  cursor: pointer;
 }
 
-.handle {
-  width: 70px;
-  height: 7px;
+.mini-handle {
+  width: 50px;
+  height: 5px;
   border-radius: 999px;
   background: #d4d4d4;
-  margin: 0 auto 16px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
-.hint-label {
-  font-size: 15px;
-  color: #a7a7a7;
-  letter-spacing: 0.5px;
+.mini-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.mini-time {
+  font-size: 18px;
+  font-weight: 650;
+  color: #111;
+  text-align: center;
+}
+
+.mini-wave {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.mini-wave span {
+  width: 5px;
+  border-radius: 999px;
+  background: #111;
+  height: calc(8px + var(--h) * 1px);
+  opacity: var(--o);
+  animation: miniWave 1.2s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.045s);
+}
+
+.mini-wave.paused span {
+  animation-play-state: paused;
+}
+
+@keyframes miniWave {
+  0%, 100% {
+    transform: scaleY(0.8);
+  }
+  50% {
+    transform: scaleY(1.25);
+  }
+}
+
+.mini-play-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: #0c0c0d;
+  color: white;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  justify-self: center;
+}
+
+.mini-play-btn:active {
+  transform: scale(0.95);
+}
+
+.mini-pause-icon {
+  width: 14px;
+  height: 16px;
+  display: flex;
+  gap: 4px;
+}
+
+.mini-pause-icon::before,
+.mini-pause-icon::after {
+  content: "";
+  width: 4px;
+  border-radius: 8px;
+  background: currentColor;
 }
 
 .expanded-content {
