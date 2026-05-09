@@ -1,38 +1,30 @@
 <template>
-  <div class="player-view">
+  <div class="player-view" :class="{ collapsed: isCollapsed }">
     <HeroSection
       :is-playing="isPlaying"
       :current-time-formatted="currentTimeFormatted"
-      :expanded="!isCollapsed"
-      @expand="expand"
+      :is-collapsed="isCollapsed"
+      :plain-title="currentEpisode.plainTitle"
+      :meta="currentEpisode.meta"
     />
 
-    <div class="content-area">
-      <div
-        class="sheet-container"
-        :class="{ collapsed: isCollapsed }"
-        @touchstart="onCardTouchStart"
-        @touchmove="onCardTouchMove"
-        @touchend="onCardTouchEnd"
-        @click="expandIfCollapsed"
-      >
-        <PlayerCard
-          :title="currentEpisode.title"
-          :meta="currentEpisode.meta"
-          :is-playing="isPlaying"
-          :progress="progress"
-          :current-time="currentTime"
-          :current-time-formatted="currentTimeFormatted"
-          :duration-formatted="durationFormatted"
-          :transcript-lines="currentEpisode.transcriptLines"
-          :expanded="!isCollapsed"
-          :is-collapsed="isCollapsed"
-          @toggle-play="togglePlay"
-          @seek="seek"
-          @seek-to="seekToTime"
-        />
-      </div>
-    </div>
+    <PlayerCard
+      :title="currentEpisode.title"
+      :plain-title="currentEpisode.plainTitle"
+      :meta="currentEpisode.meta"
+      :is-playing="isPlaying"
+      :progress="progress"
+      :current-time="currentTime"
+      :current-time-formatted="currentTimeFormatted"
+      :duration-formatted="durationFormatted"
+      :transcript-lines="currentEpisode.transcriptLines"
+      :is-collapsed="isCollapsed"
+      @toggle-play="togglePlay"
+      @seek="seek"
+      @seek-to="seekToTime"
+      @expand="expand"
+      @collapse="collapse"
+    />
   </div>
 </template>
 
@@ -55,7 +47,6 @@ const {
 } = useAudioPlayer()
 
 const isCollapsed = ref(false)
-const currentIndex = ref(0)
 
 const episodes = [
   {
@@ -156,70 +147,35 @@ const episodes = [
   },
 ]
 
-const currentEpisode = computed(() => episodes[currentIndex.value])
-
-function next() {
-  currentIndex.value = (currentIndex.value + 1) % episodes.length
-  init(currentEpisode.value.audioSrc)
-}
+const currentEpisode = computed(() => episodes[0])
 
 init(currentEpisode.value.audioSrc)
-
-let cardTouchStartY = 0
-let cardTouchStartX = 0
-
-function onCardTouchStart(e) {
-  cardTouchStartY = e.touches[0].clientY
-  cardTouchStartX = e.touches[0].clientX
-}
-
-function onCardTouchMove(e) {
-  const dy = e.touches[0].clientY - cardTouchStartY
-  const dx = Math.abs(e.touches[0].clientX - cardTouchStartX)
-  if (dy > 80 && dy > dx) {
-    isCollapsed.value = true
-  }
-}
-
-function onCardTouchEnd() {}
-
-function expandIfCollapsed() {
-  if (isCollapsed.value) {
-    isCollapsed.value = false
-  }
-}
 
 function expand() {
   isCollapsed.value = false
 }
+
+function collapse() {
+  isCollapsed.value = true
+}
+
+defineExpose({ expand, collapse })
 </script>
 
 <style scoped>
 .player-view {
+  --motion-main: 560ms;
+  --ease-main: cubic-bezier(0.22, 1, 0.36, 1);
+  --sheet-expanded-y: 300px;
+  --sheet-collapsed-y: calc(100dvh - 122px);
+
   height: 100vh;
   height: 100dvh;
   max-width: 430px;
   margin: 0 auto;
   overflow: hidden;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  background: #f5f5f7;
-}
-
-.content-area {
-  flex: 1;
-  position: relative;
-  z-index: 10;
-}
-
-.sheet-container {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
+  background: #090a0e;
+  color: #fff;
 }
 </style>

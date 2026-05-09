@@ -1,7 +1,7 @@
 <template>
   <div class="mini-player">
     <div class="mini-time">{{ currentTimeFormatted }}</div>
-    <div class="mini-wave" aria-hidden="true">
+    <div class="mini-wave" :class="{ paused: !isPlaying }" aria-hidden="true">
       <span
         v-for="i in 18"
         :key="i"
@@ -75,6 +75,10 @@ const miniWaveHeights = [
   opacity: var(--o);
   animation: miniWave 1.2s ease-in-out infinite;
   animation-delay: calc(var(--i) * -0.045s);
+}
+
+.mini-wave.paused span {
+  animation-play-state: paused;
 }
 
 @keyframes miniWave {

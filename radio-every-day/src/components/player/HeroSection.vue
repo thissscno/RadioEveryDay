@@ -1,5 +1,5 @@
 <template>
-  <div class="hero-section" :class="{ collapsed: !expanded }">
+  <div class="hero-section">
     <div class="hero">
       <div class="topbar">
         <div>
@@ -7,7 +7,7 @@
             <div class="avatar"></div>
             <div class="brand-name">Auralia</div>
           </div>
-          <div class="status" v-if="expanded">
+          <div class="status">
             <span class="status-dot" :class="{ active: isPlaying }"></span>
             <span>{{ isPlaying ? 'Speaking...' : 'Paused' }}</span>
           </div>
@@ -15,7 +15,7 @@
         <div class="time">{{ currentTimeFormatted }}</div>
       </div>
 
-      <div class="wave-bg" aria-hidden="true">
+      <div class="wave-bg" :class="{ paused: !isPlaying }" aria-hidden="true">
         <span
           v-for="i in 29"
           :key="i"
@@ -23,9 +23,18 @@
         ></span>
       </div>
 
-      <div class="collapsed-indicator" @click="$emit('expand')" v-if="!expanded">
-        <div class="handle"></div>
-        <div class="hint">上滑展开讲稿</div>
+      <div class="center-player">
+        <h1 class="center-title">{{ plainTitle }}</h1>
+        <p class="center-subtitle">{{ meta }}</p>
+        <div class="play-btn-wrapper">
+          <span class="ripple" v-if="isPlaying"></span>
+          <button class="center-play-btn" @click="$emit('toggle-play')" :aria-label="isPlaying ? 'pause' : 'play'">
+            <svg v-if="!isPlaying" width="20" height="24" viewBox="0 0 14 16" fill="currentColor">
+              <path d="M2 2.1L12 8L2 13.9V2.1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+            <span v-else class="pause-icon"></span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -35,10 +44,12 @@
 defineProps({
   isPlaying: Boolean,
   currentTimeFormatted: { type: String, default: '0:00' },
-  expanded: { type: Boolean, default: true },
+  isCollapsed: { type: Boolean, default: false },
+  plainTitle: { type: String, default: '' },
+  meta: { type: String, default: '' },
 })
 
-defineEmits(['expand'])
+defineEmits(['toggle-play'])
 
 const waveHeights = [
   54, 68, 46, 82, 60, 38, 48, 74, 128, 102,
@@ -50,23 +61,25 @@ const waveHeights = [
 <style scoped>
 .hero-section {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
+  inset: 0;
   z-index: 1;
 }
 
 .hero {
   position: relative;
+  width: 100%;
+  height: 305px;
   overflow: hidden;
   color: white;
   padding: 28px 28px 0;
   background:
     linear-gradient(180deg, rgba(6, 7, 10, 0.86), rgba(6, 7, 10, 0.98)),
     radial-gradient(circle at 30% 20%, rgba(117, 226, 189, 0.12), transparent 36%);
-  height: 305px;
-  transition: height 0.56s cubic-bezier(0.4, 0, 0.2, 1),
-              padding 0.56s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height var(--motion-main, 560ms) var(--ease-main, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.collapsed .hero {
+  height: 100dvh;
 }
 
 .hero::before {
@@ -80,15 +93,6 @@ const waveHeights = [
   pointer-events: none;
 }
 
-.hero-section.collapsed .hero {
-  height: 90px;
-  padding: 18px 28px 16px;
-}
-
-.hero-section.collapsed .hero::before {
-  mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
-}
-
 .topbar {
   position: relative;
   z-index: 2;
@@ -97,18 +101,10 @@ const waveHeights = [
   justify-content: space-between;
 }
 
-.hero-section.collapsed .topbar {
-  align-items: center;
-}
-
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.hero-section.collapsed .brand {
-  gap: 10px;
 }
 
 .avatar {
@@ -120,13 +116,6 @@ const waveHeights = [
     url("https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=80&q=80");
   background-size: cover;
   border: 1px solid rgba(255, 255, 255, 0.25);
-  transition: width 0.56s cubic-bezier(0.4, 0, 0.2, 1),
-              height 0.56s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.hero-section.collapsed .avatar {
-  width: 30px;
-  height: 30px;
 }
 
 .brand-name {
@@ -135,13 +124,6 @@ const waveHeights = [
   line-height: 1;
   font-weight: 300;
   color: rgba(255, 255, 255, 0.9);
-  transition: font-size 0.56s cubic-bezier(0.4, 0, 0.2, 1),
-              letter-spacing 0.56s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.hero-section.collapsed .brand-name {
-  font-size: 22px;
-  letter-spacing: 4px;
 }
 
 .status {
@@ -151,13 +133,6 @@ const waveHeights = [
   display: flex;
   align-items: center;
   gap: 8px;
-  opacity: 1;
-  transition: opacity 0.22s ease 0.12s;
-}
-
-.hero-section.collapsed .status {
-  opacity: 0;
-  transition: opacity 0.15s ease;
 }
 
 .status-dot {
@@ -175,18 +150,13 @@ const waveHeights = [
   font-size: 22px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
-  transition: font-size 0.56s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.hero-section.collapsed .time {
-  font-size: 18px;
 }
 
 .wave-bg {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 8px;
+  top: 147px;
   height: 150px;
   display: flex;
   align-items: flex-end;
@@ -195,15 +165,18 @@ const waveHeights = [
   padding: 0 28px;
   opacity: 0.92;
   z-index: 1;
-  transition: transform 0.44s cubic-bezier(0.4, 0, 0.2, 1) 0.08s,
-              opacity 0.44s ease 0.08s;
+  transform: translate3d(0, 0, 0) scale(0.9);
+  transition:
+    top var(--motion-main, 560ms) var(--ease-main, cubic-bezier(0.22, 1, 0.36, 1)),
+    transform var(--motion-main, 560ms) var(--ease-main, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity 260ms ease;
+  will-change: top, transform, opacity;
 }
 
-.hero-section.collapsed .wave-bg {
-  transform: translateY(-60px);
-  opacity: 0;
-  transition: transform 0.44s cubic-bezier(0.4, 0, 0.2, 1) 0.08s,
-              opacity 0.3s ease;
+.collapsed .wave-bg {
+  top: 180px;
+  transform: translate3d(0, 0, 0) scale(1.05);
+  opacity: 0.96;
 }
 
 .wave-bg span {
@@ -217,6 +190,10 @@ const waveHeights = [
   transform-origin: bottom;
 }
 
+.wave-bg.paused span {
+  animation-play-state: paused;
+}
+
 @keyframes wavePulse {
   0%, 100% {
     transform: scaleY(0.72);
@@ -228,41 +205,114 @@ const waveHeights = [
   }
 }
 
-.collapsed-indicator {
+.center-player {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  left: 24px;
+  right: 24px;
+  top: 374px;
+  text-align: center;
+  z-index: 2;
   opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.22s ease 0.3s,
-              transform 0.22s ease 0.3s;
-  z-index: 20;
-  pointer-events: auto;
-  cursor: pointer;
+  pointer-events: none;
+  transition:
+    opacity 240ms ease,
+    transform var(--motion-main, 560ms) var(--ease-main, cubic-bezier(0.22, 1, 0.36, 1));
+  will-change: opacity, transform;
 }
 
-.hero-section.collapsed .collapsed-indicator {
+.collapsed .center-player {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.22s ease 0.3s,
-              transform 0.22s ease 0.3s;
+  pointer-events: auto;
+  transition-delay: 120ms;
 }
 
-.handle {
-  width: 36px;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.4);
-  border-radius: 3px;
+.center-title {
+  margin: 0;
+  font-size: 35px;
+  line-height: 1.08;
+  letter-spacing: -1.7px;
+  font-weight: 850;
+  color: #fff;
 }
 
-.hint {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  letter-spacing: 1px;
+.center-subtitle {
+  margin: 16px 0 0;
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 450;
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.center-play-btn {
+  width: 92px;
+  height: 92px;
+  margin-top: 56px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #050609;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  transform: scale(0.82);
+  transition:
+    opacity 220ms ease,
+    transform var(--motion-main, 560ms) var(--ease-main, cubic-bezier(0.22, 1, 0.36, 1)),
+    box-shadow 260ms ease;
+  will-change: opacity, transform;
+}
+
+.collapsed .center-play-btn {
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: 220ms;
+}
+
+.center-play-btn:active {
+  transform: scale(0.94);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+}
+
+.play-btn-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.ripple {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 70%);
+  animation: rippleAnim 1.4s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes rippleAnim {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.pause-icon {
+  width: 13px;
+  height: 15px;
+  display: flex;
+  gap: 4px;
+}
+
+.pause-icon::before,
+.pause-icon::after {
+  content: "";
+  width: 4px;
+  border-radius: 8px;
+  background: currentColor;
 }
 </style>

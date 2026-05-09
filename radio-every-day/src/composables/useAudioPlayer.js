@@ -74,16 +74,16 @@ export function useAudioPlayer() {
 
   function play() {
     if (audio.value) {
-      audio.value.play()
-      isPlaying.value = true
+      audio.value.play().catch(() => {})
     }
+    isPlaying.value = true
   }
 
   function pause() {
     if (audio.value) {
       audio.value.pause()
-      isPlaying.value = false
     }
+    isPlaying.value = false
   }
 
   function togglePlay() {
