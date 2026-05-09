@@ -5,16 +5,15 @@
       :animate="{ y: sheetY }"
       :transition="{ type: 'spring', stiffness: 260, damping: 32 }"
       :css="false"
-      @click="handleSheetClick"
       @touchstart="onTouchStart"
       @touchmove="onTouchMove"
       @touchend="onTouchEnd"
     >
       <div class="sheet-inner">
         <!-- 折叠状态下的mini-player控制条 -->
-        <div class="collapsed-mini-player" @click.stop="$emit('expand')">
-          <div class="mini-handle"></div>
-          <div class="mini-content">
+        <div class="collapsed-mini-player">
+          <div class="mini-handle" @click.stop="$emit('expand')"></div>
+          <div class="mini-content" @click.stop="$emit('expand')">
             <div class="mini-time">{{ currentTimeFormatted }}</div>
             <div class="mini-wave" :class="{ paused: !isPlaying }" aria-hidden="true">
               <span
@@ -112,6 +111,8 @@ function onTouchMove(e) {
   const dy = e.touches[0].clientY - touchStartY
   if (dy > 80 && !props.isCollapsed) {
     emit('collapse')
+  } else if (dy < -60 && props.isCollapsed) {
+    emit('expand')
   }
 }
 
@@ -132,12 +133,6 @@ function onBarClick(e) {
   const rect = barRef.value.getBoundingClientRect()
   const ratio = (e.clientX - rect.left) / rect.width
   emit('seek', Math.max(0, Math.min(1, ratio)))
-}
-
-function handleSheetClick() {
-  if (props.isCollapsed) {
-    emit('expand')
-  }
 }
 </script>
 
