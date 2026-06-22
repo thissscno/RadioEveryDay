@@ -2,37 +2,65 @@
   <div class="player-view" :class="{ collapsed: isCollapsed }">
     <HeroSection
       :is-playing="isPlaying"
+      :is-buffering="isBuffering"
       :current-time-formatted="currentTimeFormatted"
       :is-collapsed="isCollapsed"
-      :plain-title="currentEpisode.plainTitle"
-      :meta="currentEpisode.meta"
+      :station-name="currentStation.name"
+      :station-category="currentStation.category"
+      :station-style="currentStation.style"
+      :cover-url="currentStation.coverUrl"
+      :is-logged-in="isLoggedIn"
+      :user-avatar="user?.avatarUrl || ''"
+      :user-vip="user?.vipType > 0"
+      @toggle-login="handleToggleLogin"
     />
 
     <PlayerCard
-      :title="currentEpisode.title"
-      :plain-title="currentEpisode.plainTitle"
-      :meta="currentEpisode.meta"
+      :station-name="currentStation.name"
+      :station-category="currentStation.category"
+      :station-style="currentStation.style"
+      :station-scene="currentStation.scene"
       :is-playing="isPlaying"
+      :is-buffering="isBuffering"
+      :is-live-stream="isLiveStream"
       :progress="progress"
       :current-time="currentTime"
       :current-time-formatted="currentTimeFormatted"
       :duration-formatted="durationFormatted"
-      :transcript-lines="currentEpisode.transcriptLines"
       :is-collapsed="isCollapsed"
+      :current-index="currentIndex"
+      :total-stations="allStations.length"
+      :stations="allStations"
+      :is-loading="stationsLoading"
       @toggle-play="togglePlay"
       @seek="seek"
-      @seek-to="seekToTime"
+      @prev="prevStation"
+      @next="nextStation"
       @expand="expand"
       @collapse="collapse"
+      @select-station="selectStation"
+      @refresh="handleRefresh"
     />
+
+    <div v-if="stationsLoading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading stations...</div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import HeroSection from '../components/player/HeroSection.vue'
 import PlayerCard from '../components/player/PlayerCard.vue'
 import { useAudioPlayer } from '../composables/useAudioPlayer'
+import { useNeteaseStations } from '../composables/useNeteaseStations'
+import { useNeteaseAuth } from '../composables/useNeteaseAuth'
+import { defaultStations } from '../data/stations'
+
+const router = useRouter()
+const { user, isLoggedIn, doLogout, checkLogin } = useNeteaseAuth()
 
 const {
   isPlaying,
@@ -40,116 +68,79 @@ const {
   progress,
   currentTimeFormatted,
   durationFormatted,
+  isLiveStream,
+  isBuffering,
   init,
+  play,
   togglePlay,
   seek,
-  seekToTime,
 } = useAudioPlayer()
 
+const {
+  stations: neteaseStations,
+  isLoading: stationsLoading,
+  loadStations,
+  refresh,
+} = useNeteaseStations()
+
 const isCollapsed = ref(false)
+const currentIndex = ref(0)
 
-const episodes = [
-  {
-    title: 'Monday Night<br />Exhale',
-    plainTitle: 'Monday Night Exhale',
-    meta: 'If — Bread',
-    audioSrc: '/demo.mp3',
-    transcriptLines: [
-      {
-        speaker: 'Auralia',
-        time: 5,
-        endTime: 11,
-        text: 'Back in 1971, David picked up a <span class="highlight">nylon-string</span> guitar and let every line end in a whisper.',
-      },
-      {
-        speaker: 'Auralia',
-        time: 11,
-        endTime: 14,
-        text: "You'll feel yourself lift off the ground a little.",
-      },
-      {
-        speaker: 'Auralia',
-        time: 14,
-        endTime: 15,
-        text: 'This one is called If.',
-      },
-      {
-        speaker: 'Auralia',
-        time: 15,
-        endTime: 20,
-        text: 'After a long day, just breathe and let the room get quiet.',
-      },
-    ],
-  },
-  {
-    title: 'Golden Hour<br />Drift',
-    plainTitle: 'Golden Hour Drift',
-    meta: 'Golden Slumbers — The Beatles',
-    audioSrc: '/demo.mp3',
-    transcriptLines: [
-      {
-        speaker: 'Auralia',
-        time: 3,
-        endTime: 8,
-        text: 'There was a time when <span class="highlight">Paul McCartney</span> wrote a lullaby disguised as a rock song.',
-      },
-      {
-        speaker: 'Auralia',
-        time: 8,
-        endTime: 13,
-        text: 'Close your eyes and let the harmonies carry you home.',
-      },
-      {
-        speaker: 'Auralia',
-        time: 13,
-        endTime: 18,
-        text: 'This is Golden Slumbers, from the Abbey Road finale.',
-      },
-      {
-        speaker: 'Auralia',
-        time: 18,
-        endTime: 24,
-        text: 'Sometimes the simplest melody is the one that stays with you the longest.',
-      },
-    ],
-  },
-  {
-    title: 'Rainy Day<br />Reverie',
-    plainTitle: 'Rainy Day Reverie',
-    meta: 'Riders on the Storm — The Doors',
-    audioSrc: '/demo.mp3',
-    transcriptLines: [
-      {
-        speaker: 'Auralia',
-        time: 4,
-        endTime: 10,
-        text: 'Thunder sounds and <span class="highlight">Ray Manzarek</span> keys — this track was recorded with actual rain in the studio.',
-      },
-      {
-        speaker: 'Auralia',
-        time: 10,
-        endTime: 15,
-        text: 'Let the storm outside become the soundtrack inside your head.',
-      },
-      {
-        speaker: 'Auralia',
-        time: 15,
-        endTime: 20,
-        text: 'Riders on the Storm, from 1971.',
-      },
-      {
-        speaker: 'Auralia',
-        time: 20,
-        endTime: 28,
-        text: 'The best rainy day songs make you forget the rain is even there.',
-      },
-    ],
-  },
-]
+const allStations = computed(() => {
+  if (neteaseStations.value.length > 0) return neteaseStations.value
+  return defaultStations
+})
 
-const currentEpisode = computed(() => episodes[0])
+const currentStation = computed(() => allStations.value[currentIndex.value] || defaultStations[0])
 
-init(currentEpisode.value.audioSrc)
+function playStation(index) {
+  if (index < 0 || index >= allStations.value.length) return
+  currentIndex.value = index
+  const station = allStations.value[index]
+  if (station.url) {
+    init(station.url)
+    play()
+  }
+}
+
+function nextStation() {
+  const next = (currentIndex.value + 1) % allStations.value.length
+  playStation(next)
+}
+
+function prevStation() {
+  const prev = (currentIndex.value - 1 + allStations.value.length) % allStations.value.length
+  playStation(prev)
+}
+
+function selectStation(index) {
+  playStation(index)
+}
+
+async function handleRefresh() {
+  await refresh()
+  currentIndex.value = 0
+  if (allStations.value.length > 0) {
+    playStation(0)
+  }
+}
+
+function handleToggleLogin() {
+  if (isLoggedIn.value) {
+    doLogout()
+    handleRefresh()
+  } else {
+    router.push('/login')
+  }
+}
+
+onMounted(async () => {
+  checkLogin()
+  await loadStations()
+  if (allStations.value.length > 0) {
+    playStation(0)
+  }
+})
 
 function expand() {
   isCollapsed.value = false
@@ -177,5 +168,35 @@ defineExpose({ expand, collapse })
   position: relative;
   background: #090a0e;
   color: #fff;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(9, 10, 14, 0.85);
+  z-index: 100;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
 }
 </style>

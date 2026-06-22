@@ -11,4 +11,13 @@ export default defineConfig({
       resolvers: [VantResolver()],
     }),
   ],
+  server: {
+    proxy: {
+      '/netease-api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/netease-api/, ''),
+      },
+    },
+  },
 })

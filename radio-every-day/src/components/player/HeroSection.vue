@@ -1,18 +1,40 @@
 <template>
   <div class="hero-section">
-    <div class="hero">
+    <div class="hero" :class="{ 'has-cover': !!coverUrl }">
+      <div v-if="coverUrl" class="cover-bg">
+        <img :src="coverUrl" alt="" class="cover-bg-img" />
+      </div>
       <div class="topbar">
         <div>
           <div class="brand">
             <div class="avatar"></div>
-            <div class="brand-name">Auralia</div>
+            <div class="brand-name">Radio</div>
           </div>
           <div class="status">
-            <span class="status-dot" :class="{ active: isPlaying }"></span>
-            <span>{{ isPlaying ? 'Speaking...' : 'Paused' }}</span>
+            <span class="status-dot" :class="{ active: isPlaying, buffering: isBuffering }"></span>
+            <span>{{ statusText }}</span>
           </div>
         </div>
-        <div class="time">{{ currentTimeFormatted }}</div>
+        <div class="topbar-right">
+          <div class="time">{{ currentTimeFormatted }}</div>
+          <button
+            class="user-btn"
+            @click="$emit('toggle-login')"
+            :aria-label="isLoggedIn ? 'user menu' : 'login'"
+          >
+            <img
+              v-if="isLoggedIn && userAvatar"
+              :src="userAvatar"
+              alt=""
+              class="user-avatar"
+            />
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span v-if="isLoggedIn && userVip" class="vip-badge">VIP</span>
+          </button>
+        </div>
       </div>
 
       <div class="wave-bg" :class="{ paused: !isPlaying }" aria-hidden="true">
@@ -24,8 +46,9 @@
       </div>
 
       <div class="center-player">
-        <h1 class="center-title">{{ plainTitle }}</h1>
-        <p class="center-subtitle">{{ meta }}</p>
+        <div class="center-category">{{ stationCategory }}</div>
+        <h1 class="center-title">{{ stationName }}</h1>
+        <p class="center-subtitle">{{ stationStyle }}</p>
         <div class="play-btn-wrapper">
           <span class="ripple" v-if="isPlaying"></span>
           <button class="center-play-btn" @click="$emit('toggle-play')" :aria-label="isPlaying ? 'pause' : 'play'">
@@ -41,15 +64,28 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   isPlaying: Boolean,
+  isBuffering: Boolean,
   currentTimeFormatted: { type: String, default: '0:00' },
   isCollapsed: { type: Boolean, default: false },
-  plainTitle: { type: String, default: '' },
-  meta: { type: String, default: '' },
+  stationName: { type: String, default: '' },
+  stationCategory: { type: String, default: '' },
+  stationStyle: { type: String, default: '' },
+  coverUrl: { type: String, default: '' },
+  isLoggedIn: { type: Boolean, default: false },
+  userAvatar: { type: String, default: '' },
+  userVip: { type: Boolean, default: false },
 })
 
-defineEmits(['toggle-play'])
+defineEmits(['toggle-play', 'toggle-login'])
+
+const statusText = computed(() => {
+  if (props.isBuffering) return 'Buffering...'
+  return props.isPlaying ? 'Playing' : 'Paused'
+})
 
 const waveHeights = [
   54, 68, 46, 82, 60, 38, 48, 74, 128, 102,
@@ -78,6 +114,32 @@ const waveHeights = [
   transition: height var(--motion-main, 560ms) var(--ease-main, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
+.cover-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.cover-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(40px) brightness(0.4) saturate(1.2);
+  transform: scale(1.3);
+  opacity: 0.7;
+  transition: opacity 0.6s ease;
+}
+
+.has-cover .hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 7, 10, 0.5), rgba(6, 7, 10, 0.9));
+  z-index: 0;
+  pointer-events: none;
+}
+
 .collapsed .hero {
   height: 100dvh;
 }
@@ -99,6 +161,53 @@ const waveHeights = [
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  transition: background 0.15s;
+}
+
+.user-btn:active {
+  background: rgba(255,255,255,0.15);
+}
+
+.user-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.vip-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -6px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #f0ad4e, #e8a020);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1.3;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
 .brand {
@@ -144,6 +253,17 @@ const waveHeights = [
 
 .status-dot.active {
   box-shadow: 0 0 16px rgba(117, 226, 189, 0.95);
+}
+
+.status-dot.buffering {
+  background: #f0ad4e;
+  box-shadow: 0 0 16px rgba(240, 173, 78, 0.95);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 .time {
@@ -227,6 +347,19 @@ const waveHeights = [
   transition-delay: 120ms;
 }
 
+.center-category {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 16px;
+}
+
 .center-title {
   margin: 0;
   font-size: 35px;
@@ -237,8 +370,8 @@ const waveHeights = [
 }
 
 .center-subtitle {
-  margin: 16px 0 0;
-  font-size: 18px;
+  margin: 12px 0 0;
+  font-size: 16px;
   line-height: 1.2;
   font-weight: 450;
   color: rgba(255, 255, 255, 0.32);

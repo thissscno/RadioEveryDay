@@ -1,0 +1,58 @@
+export const neteaseSources = [
+  {
+    id: 2829883282,
+    name: 'Lofi 电台',
+    category: 'Lo-Fi',
+    style: 'Lo-fi · Chill',
+    scene: 'Study',
+  },
+  {
+    id: 21772093,
+    name: '学习专用 BGM',
+    category: 'Chill',
+    style: 'Chill · Ambient',
+    scene: 'Study',
+  },
+  {
+    id: 898166,
+    name: '安静读书',
+    category: 'Ambient',
+    style: 'Ambient · Soft',
+    scene: 'Reading',
+  },
+  {
+    id: 112880972,
+    name: 'Jazz 咖啡馆',
+    category: 'Jazz',
+    style: 'Jazz · Smooth',
+    scene: 'Relax',
+  },
+  {
+    id: 2401865550,
+    name: '古典入门',
+    category: 'Classical',
+    style: 'Classical · Symphony',
+    scene: 'Focus',
+  },
+  {
+    id: 2888224289,
+    name: 'Hip-Hop 电台',
+    category: 'Hip-Hop',
+    style: 'Hip-Hop · Beats',
+    scene: 'Workout',
+  },
+  {
+    id: 3136952023,
+    name: '中文 Indie',
+    category: 'Indie',
+    style: 'Indie · Chinese',
+    scene: 'Chill',
+  },
+  {
+    id: 5037764824,
+    name: '电子梦境',
+    category: 'Electronic',
+    style: 'Electronic · Dream',
+    scene: 'Night',
+  },
+]
